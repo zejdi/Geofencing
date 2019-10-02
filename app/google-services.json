@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "189466833633",
+    "firebase_url": "https://notificationproject-91b31.firebaseio.com",
+    "project_id": "notificationproject-91b31",
+    "storage_bucket": "notificationproject-91b31.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:189466833633:android:746ad42be081f7cb3a3da0",
+        "android_client_info": {
+          "package_name": "com.testing.sim"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "189466833633-3r2cc497ubj7rcu66ge5ikm8jkpepveq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_0PAQXvMr1c1BWK15LAJmIL7JQ6unOkg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "189466833633-3r2cc497ubj7rcu66ge5ikm8jkpepveq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

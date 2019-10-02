@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Sim</string>
+    <string name="mapbox_token">pk.eyJ1IjoiemVqZGkiLCJhIjoiY2sxMGpjdm95MDJzNzNjczVsbHM1cnZlbiJ9.-d6KD3nyMRbYsbucefQc3w</string>
+</resources>
