@@ -42,13 +42,14 @@ public class MyFirebaseMessageService extends FirebaseMessagingService {
 
         if (remoteMessage.getData().size() > 0) {
             Log.d(TAG, "Message data payload: " + remoteMessage.getData());
-            token = remoteMessage.getData().remove("key");
-
+            token = remoteMessage.getData().remove("recipient");
+            Log.d(TAG, token);
+            Log.d(TAG,MainActivity.fcmToken);
         }
 
         if (remoteMessage.getNotification() != null) {
-            if(token.equals("dLWIskbPJqE:APA91bGxq5yr4guIpAqZoerpIRjBzlrIfHy-UT5svzZGv41Kvf9G7rq6luHRDeHw3DoP1fnTYLE23JUYFVmhNO_H-jPvnHY4XPhlcXK441GStDj7xkSqr7zMTFc5a8V960r1h83qzrmN"))
-             showWnotification(remoteMessage.getNotification().getTitle(),remoteMessage.getNotification().getBody());
+                if(MainActivity.fcmToken.equals(token))
+                  showWnotification(remoteMessage.getNotification().getTitle(),remoteMessage.getNotification().getBody());
         }
 
 

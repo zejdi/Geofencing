@@ -5,26 +5,28 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
+
     <com.mapbox.mapboxsdk.maps.MapView
         android:id="@+id/map"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="visible"/>
+        android:visibility="visible" />
+
+    <com.mapbox.services.android.navigation.ui.v5.NavigationView
+        android:id="@+id/navigation"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"/>
 
     <Button
         android:id="@+id/button"
+        android:text="GO"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:text="getRoute"/>
-
-    <Button
-        android:id="@+id/notif"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="getNotification"
+        android:layout_alignParentRight="true"
         android:layout_alignParentBottom="true"/>
+
+
 
 
 

@@ -1,9 +1,13 @@
 package com.testing.sim;
 
 import android.Manifest;
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Intent;
+import android.graphics.Camera;
 import android.graphics.Color;
+import android.location.Location;
 import android.media.AudioAttributes;
 import android.os.Build;
 import android.os.Bundle;
@@ -35,7 +39,10 @@ import com.mapbox.api.directions.v5.models.DirectionsResponse;
 import com.mapbox.api.directions.v5.models.DirectionsRoute;
 import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.camera.CameraPosition;
+import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
+import com.mapbox.mapboxsdk.geometry.LatLngBounds;
 import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions;
 import com.mapbox.mapboxsdk.location.modes.CameraMode;
@@ -46,11 +53,21 @@ import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.plugins.annotation.SymbolManager;
 import com.mapbox.mapboxsdk.plugins.annotation.SymbolOptions;
+import com.mapbox.services.android.navigation.ui.v5.MapboxNavigationActivity;
+import com.mapbox.services.android.navigation.ui.v5.NavigationLauncher;
+import com.mapbox.services.android.navigation.ui.v5.NavigationLauncherOptions;
+import com.mapbox.services.android.navigation.ui.v5.NavigationView;
+import com.mapbox.services.android.navigation.ui.v5.NavigationViewOptions;
+import com.mapbox.services.android.navigation.ui.v5.OnNavigationReadyCallback;
+import com.mapbox.services.android.navigation.ui.v5.camera.NavigationCamera;
 import com.mapbox.services.android.navigation.ui.v5.route.NavigationMapRoute;
 import com.mapbox.services.android.navigation.v5.location.replay.ReplayRouteLocationEngine;
 import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigation;
 import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigationOptions;
+import com.mapbox.services.android.navigation.v5.navigation.NavigationEventListener;
 import com.mapbox.services.android.navigation.v5.navigation.NavigationRoute;
+import com.mapbox.services.android.navigation.v5.routeprogress.ProgressChangeListener;
+import com.mapbox.services.android.navigation.v5.routeprogress.RouteProgress;
 
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
@@ -60,8 +77,8 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,LocationEngineCallback<LocationEngineResult>, View.OnClickListener
-,Callback<DirectionsResponse>{
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, View.OnClickListener
+,Callback<DirectionsResponse>, OnNavigationReadyCallback,ProgressChangeListener {
 
     String[] permissions = {Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION};
 
@@ -70,12 +87,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     MapboxMap mapBoxMap;
     SymbolManager symbolManager;
     NavigationRoute navigationRoute;
-    NavigationMapRoute navigationMapRoute;
+    NavigationView navigationView;
 
     DirectionsRoute directionsRoute;
     LocationEngine locationEngine;
 
-    String fcmToken;
+    public static String fcmToken;
     public NotificationChannel channel;
     LatLng storeLocat,destLocat;
 
@@ -83,7 +100,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     LocationComponent locationComponent;
     LatLng mylocation;
 
-    Button button,notificationButt;
+    Button button;
 
     Boolean leftStore = false;
     Boolean entered = false;
@@ -93,6 +110,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestPermissions(permissions,100);
+//        startActivity(new Intent(this,Navigation.class));
 
         Mapbox.getInstance(this,getString(R.string.mapbox_token));
 
@@ -102,28 +120,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             initNotificationChannel();
         }
 
-        MapboxNavigationOptions mapboxNavigationOptions = MapboxNavigationOptions.builder().isDebugLoggingEnabled(true).enableFasterRouteDetection(true).
-                build();
-
-        mapboxNavigation = new MapboxNavigation(this,getString(R.string.mapbox_token),mapboxNavigationOptions);
         setContentView(R.layout.activity_main);
 
         map = findViewById(R.id.map);
+        navigationView = findViewById(R.id.navigation);
         button = findViewById(R.id.button);
-        notificationButt = findViewById(R.id.notif);
-
 
         button.setOnClickListener(this);
-        notificationButt.setOnClickListener(this);
 
-        storeLocat = new LatLng( 41.98527027161482,20.958738327026367);
-        destLocat = new LatLng(42.01033849637934,20.971956253051758);
+        destLocat = new LatLng(41.99668933900524,20.961098670959473);
 
         map.onCreate(savedInstanceState);
+        navigationView.onCreate(savedInstanceState);
 
         map.getMapAsync(this);
-
-
     }
 
     @Override
@@ -146,62 +156,54 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @Override
-    public void onMapReady(@NonNull MapboxMap mapboxMap) {
+    public void onMapReady(@NonNull final MapboxMap mapboxMap) {
         mapBoxMap = mapboxMap;
         mapboxMap.setStyle(Style.MAPBOX_STREETS, new Style.OnStyleLoaded() {
             @Override
             public void onStyleLoaded(@NonNull Style style) {
-                symbolManager = new SymbolManager(map,mapBoxMap,style);
-                style.addImage("store",getDrawable(R.drawable.store));
-                style.addImage("destination",getDrawable(R.drawable.destination));
 
-                SymbolOptions symbolOptions = new SymbolOptions();
-                symbolOptions.withIconImage("store");
-                symbolOptions.withIconSize(0.4f);
-                symbolOptions.withLatLng(new LatLng( 41.98527027161482,20.958738327026367));
-                symbolManager.create(symbolOptions);
+                style.addImage("dest",getDrawable(R.drawable.destination));
 
-                symbolOptions = new SymbolOptions();
-                symbolOptions.withIconImage("destination");
-                symbolOptions.withIconSize(0.4f);
-                symbolOptions.withLatLng(new LatLng(42.01033849637934,20.971956253051758));
-                symbolManager.create(symbolOptions);
 
-                LocationComponentActivationOptions locationComponentActivationOptions = LocationComponentActivationOptions.builder(MainActivity.this,style).build();
+                LocationComponentActivationOptions locationComponentActivationOptions = LocationComponentActivationOptions.builder(MainActivity.this, style).build();
                 locationComponent = mapBoxMap.getLocationComponent();
                 locationComponent.activateLocationComponent(locationComponentActivationOptions);
                 locationComponent.setCameraMode(CameraMode.TRACKING);
                 locationComponent.setRenderMode(RenderMode.NORMAL);
                 locationComponent.setLocationComponentEnabled(true);
-                locationComponent.zoomWhileTracking(16f);
+                try{
+                    locationComponent.getLocationEngine().getLastLocation(new LocationEngineCallback<LocationEngineResult>() {
+                        @Override
+                         public void onSuccess(LocationEngineResult result) {
+                            storeLocat = new LatLng(result.getLastLocation());
+                            if(storeLocat != null)
+                            {
+                                Toast.makeText(MainActivity.this, "Location received", Toast.LENGTH_SHORT).show();
+                                Log.d(TAG, storeLocat.toString());
+                                mapboxMap.moveCamera(CameraUpdateFactory.newLatLngBounds(new LatLngBounds.Builder().include(storeLocat).include(destLocat).build(),1));
+                            }
+                         }
 
-                locationEngineRequest = new LocationEngineRequest.Builder(1000).setDisplacement(10f).setMaxWaitTime(2000).build();
-                locationEngine = LocationEngineProvider.getBestLocationEngine(MainActivity.this);
-                locationEngine.requestLocationUpdates(locationEngineRequest,MainActivity.this,getMainLooper());
+                         @Override
+                         public void onFailure(@NonNull Exception exception) {
+
+                         }
+                     });
+                  }
+                catch (NullPointerException e)
+                {
+                    e.printStackTrace();
+                }
+                navigationView.onMapReady(mapboxMap);
+                navigationView.initialize(new OnNavigationReadyCallback() {
+                    @Override
+                    public void onNavigationReady(boolean isRunning) {
+
+                    }
+                }, new CameraPosition.Builder().target(new LatLng(storeLocat)).zoom(11d).build());
 
             }
         });
-    }
-
-    @Override
-    public void onSuccess(LocationEngineResult result) {
-        mylocation = new LatLng(result.getLocations().get(0));
-        locationComponent.forceLocationUpdate(result.getLastLocation());
-        if(mylocation.distanceTo(storeLocat)>100 && !leftStore)
-        {
-            pushNotification(1);
-            leftStore=true;
-        }
-        if(mylocation.distanceTo(destLocat)<100 && !entered)
-        {
-            pushNotification(2);
-            entered = true;
-        }
-    }
-
-    @Override
-    public void onFailure(@NonNull Exception exception) {
-
     }
 
     public void pushNotification(final int event)
@@ -223,8 +225,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     case 1:
                      json = "{\n" +
                             "  \"data\":{\n" +
-                            "    \"key\":\"dLWIskbPJqE:APA91bGxq5yr4guIpAqZoerpIRjBzlrIfHy-UT5svzZGv41Kvf9G7rq6luHRDeHw3DoP1fnTYLE23JUYFVmhNO_H-jPvnHY4XPhlcXK441GStDj7xkSqr7zMTFc5a8V960r1h83qzrmN\",\n" +
-                            "    \"message\":\"Hello how are you?\"\n" +
+                            "    \"recipient\":\"dLWIskbPJqE:APA91bGxq5yr4guIpAqZoerpIRjBzlrIfHy-UT5svzZGv41Kvf9G7rq6luHRDeHw3DoP1fnTYLE23JUYFVmhNO_H-jPvnHY4XPhlcXK441GStDj7xkSqr7zMTFc5a8V960r1h83qzrmN\",\n" +
+                            "    \"sender\":\"" + fcmToken + "\"\n" +
                             "  },\n" +
                             " \"notification\":{ " +
                             " \"title\":\"Left Store\"" +
@@ -235,8 +237,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     case 2:
                         json = "{\n" +
                                 "  \"data\":{\n" +
-                                "    \"key\":\"dLWIskbPJqE:APA91bGxq5yr4guIpAqZoerpIRjBzlrIfHy-UT5svzZGv41Kvf9G7rq6luHRDeHw3DoP1fnTYLE23JUYFVmhNO_H-jPvnHY4XPhlcXK441GStDj7xkSqr7zMTFc5a8V960r1h83qzrmN\",\n" +
-                                "    \"message\":\"Hello how are you?\"\n" +
+                                "    \"recipient\":\"dLWIskbPJqE:APA91bGxq5yr4guIpAqZoerpIRjBzlrIfHy-UT5svzZGv41Kvf9G7rq6luHRDeHw3DoP1fnTYLE23JUYFVmhNO_H-jPvnHY4XPhlcXK441GStDj7xkSqr7zMTFc5a8V960r1h83qzrmN\",\n" +
+                                "    \"sender\":\"" + fcmToken + "\"\n" +
                                 "  },\n" +
                                 " \"notification\":{ " +
                                 " \"title\":\"Arrived\"" +
@@ -248,6 +250,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         json = "{}";
                 };
                 try {
+                    Log.d(TAG, json);
                     return json.getBytes("utf-8");
                 } catch (UnsupportedEncodingException ex) {
                     ex.printStackTrace();
@@ -264,16 +267,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         switch (view.getId())
         {
             case R.id.button:
-
+                navigationView.setVisibility(View.VISIBLE);
+                map.setVisibility(View.GONE);
+                navigationView.retrieveNavigationMapboxMap().addCustomMarker(new SymbolOptions().withIconImage("dest").withLatLng(destLocat));
                 navigationRoute = NavigationRoute.builder(MainActivity.this)
                 .accessToken(getString(R.string.mapbox_token))
-                .origin(Point.fromLngLat(mylocation.getLongitude(),mylocation.getLatitude()))
-                .destination(Point.fromLngLat(   20.971956253051758, 42.01033849637934))
+                .origin(Point.fromLngLat(storeLocat.getLongitude(),storeLocat.getLatitude()))
+                .destination(Point.fromLngLat(destLocat.getLongitude(),destLocat.getLatitude()))
                 .build();
                 navigationRoute.getRoute(this);
-                break;
-            case R.id.notif:
-                pushNotification(1);
                 break;
                 default:
 
@@ -282,30 +284,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onResponse(Call<DirectionsResponse> call, Response<DirectionsResponse> response) {
-        if(response.body() != null)
-        {
+        if(response.body() != null) {
+            Toast.makeText(this, String.valueOf(response.body().routes().size()), Toast.LENGTH_SHORT).show();
             directionsRoute = response.body().routes().get(0);
-            if(navigationMapRoute != null)
-            {
-                navigationMapRoute.removeRoute();
-                navigationMapRoute.addRoute(directionsRoute);
-            }
-            else {
-                navigationMapRoute = new NavigationMapRoute(map, mapBoxMap);
-            }
-
-            navigationMapRoute.addRoute(directionsRoute);
-
-            locationEngine.removeLocationUpdates(this);
-            ReplayRouteLocationEngine replayRouteLocationEngine = new ReplayRouteLocationEngine();
-            replayRouteLocationEngine.assign(directionsRoute);
-            replayRouteLocationEngine.updateSpeed(5000);
-            replayRouteLocationEngine.requestLocationUpdates(new LocationEngineRequest.Builder(200).setPriority(LocationEngineRequest.PRIORITY_HIGH_ACCURACY).setFastestInterval(100).build(),
-                    this,
-                    getMainLooper());
-            replayRouteLocationEngine.run();
-//            NavigationLauncherOptions navigationLauncherOptions = NavigationLauncherOptions.builder().shouldSimulateRoute(true).directionsRoute(directionsRoute).build();
-//            NavigationLauncher.startNavigation(MainActivity.this,navigationLauncherOptions);
+            navigationView.retrieveNavigationMapboxMap().updateLocationLayerRenderMode(RenderMode.NORMAL);
+            NavigationViewOptions navigationViewOptions = NavigationViewOptions.builder()
+                    .directionsRoute(directionsRoute)
+                    .shouldSimulateRoute(true)
+                    .progressChangeListener(this)
+                    .build();
+            navigationView.startNavigation(navigationViewOptions);
+//            NavigationLauncherOptions navigationLauncherOptions = NavigationLauncherOptions.builder()
+//                    .directionsRoute(directionsRoute)
+//                    .shouldSimulateRoute(true)
+//                    .build();
+//            NavigationLauncher.startNavigation(this,navigationLauncherOptions);
         }
 
 
@@ -321,14 +314,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 fcmToken = task.getResult().getToken();
             }
         });
-        FirebaseMessaging.getInstance().subscribeToTopic("costumer").addOnCompleteListener(new OnCompleteListener<Void>() {
-            @Override
-            public void onComplete(@NonNull Task<Void> task) {
-                if(task.isSuccessful())
-                    Toast.makeText(MainActivity.this, "Yes", Toast.LENGTH_SHORT).show();
-            }
-        });
 
+            FirebaseMessaging.getInstance().subscribeToTopic("costumer").addOnCompleteListener(new OnCompleteListener<Void>() {
+                @Override
+                public void onComplete(@NonNull Task<Void> task) {
+                    if (task.isSuccessful())
+                        Toast.makeText(MainActivity.this, "Yes", Toast.LENGTH_SHORT).show();
+                }
+            });
     }
 
 
@@ -355,4 +348,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
+    @Override
+    public void onNavigationReady(boolean isRunning) {
+        Toast.makeText(this, "Navigation running", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onProgressChange(Location location, RouteProgress routeProgress) {
+        navigationView.retrieveNavigationMapboxMap().updateLocation(location);
+    }
 }
