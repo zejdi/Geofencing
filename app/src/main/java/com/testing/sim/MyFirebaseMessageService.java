@@ -2,6 +2,7 @@ package com.testing.sim;
 
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.Icon;
@@ -24,7 +25,8 @@ public class MyFirebaseMessageService extends FirebaseMessagingService {
     private static final String TAG = "MyFirebaseMessage";
     private static String token;
     private NotificationManager notificationManager;
-    Notification notification;
+    private Notification notification;
+    public String fcmToken;
 
 
     @Override
@@ -32,6 +34,16 @@ public class MyFirebaseMessageService extends FirebaseMessagingService {
         super.onCreate();
 
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+        FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
+            @Override
+            public void onComplete(@NonNull Task<InstanceIdResult> task) {
+                Log.d(TAG, task.getResult().getToken());
+                fcmToken = task.getResult().getToken();
+            }
+        });
+
+
     }
 
     @Override
@@ -44,19 +56,19 @@ public class MyFirebaseMessageService extends FirebaseMessagingService {
             Log.d(TAG, "Message data payload: " + remoteMessage.getData());
             token = remoteMessage.getData().remove("recipient");
             Log.d(TAG, token);
-            Log.d(TAG,MainActivity.fcmToken);
+            Log.d(TAG,fcmToken);
         }
 
         if (remoteMessage.getNotification() != null) {
-                if(MainActivity.fcmToken.equals(token))
-                  showWnotification(remoteMessage.getNotification().getTitle(),remoteMessage.getNotification().getBody());
+                if(fcmToken.equals(token))
+                  showNotification(remoteMessage.getNotification().getTitle(),remoteMessage.getNotification().getBody());
         }
 
 
 
     }
 
-    public void showWnotification(String title,String body)
+    public void showNotification(String title,String body)
     {
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
         {

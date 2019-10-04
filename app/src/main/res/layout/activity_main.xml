@@ -12,12 +12,6 @@
         android:layout_height="match_parent"
         android:visibility="visible" />
 
-    <com.mapbox.services.android.navigation.ui.v5.NavigationView
-        android:id="@+id/navigation"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone"/>
-
     <Button
         android:id="@+id/button"
         android:text="GO"
