@@ -125,26 +125,18 @@ public class NavigationActivity extends AppCompatActivity implements OnNavigatio
                 switch (event) {
                     case 1:
                         json = "{\n" +
-                                "  \"data\":{\n" +
-                                "    \"recipient\":\"dLWIskbPJqE:APA91bGxq5yr4guIpAqZoerpIRjBzlrIfHy-UT5svzZGv41Kvf9G7rq6luHRDeHw3DoP1fnTYLE23JUYFVmhNO_H-jPvnHY4XPhlcXK441GStDj7xkSqr7zMTFc5a8V960r1h83qzrmN\",\n" +
-                                "    \"sender\":\"" + fcmToken + "\"\n" +
-                                "  },\n" +
                                 " \"notification\":{ " +
                                 " \"title\":\"Left Store\"" +
                                 " \"body\":\"The driver has left the store\"}," +
-                                "  \"to\":\"/topics/costumer\"\n" +
+                                "  \"to\":\"dLWIskbPJqE:APA91bGxq5yr4guIpAqZoerpIRjBzlrIfHy-UT5svzZGv41Kvf9G7rq6luHRDeHw3DoP1fnTYLE23JUYFVmhNO_H-jPvnHY4XPhlcXK441GStDj7xkSqr7zMTFc5a8V960r1h83qzrmN\"\n" +
                                 "}";
                         break;
                     case 2:
                         json = "{\n" +
-                                "  \"data\":{\n" +
-                                "    \"recipient\":\"dLWIskbPJqE:APA91bGxq5yr4guIpAqZoerpIRjBzlrIfHy-UT5svzZGv41Kvf9G7rq6luHRDeHw3DoP1fnTYLE23JUYFVmhNO_H-jPvnHY4XPhlcXK441GStDj7xkSqr7zMTFc5a8V960r1h83qzrmN\",\n" +
-                                "    \"sender\":\"" + fcmToken + "\"\n" +
-                                "  },\n" +
                                 " \"notification\":{ " +
                                 " \"title\":\"Arrived\"" +
                                 " \"body\":\"The driver has arrived\"}," +
-                                "  \"to\":\"/topics/costumer\"\n" +
+                                "  \"to\":\"dLWIskbPJqE:APA91bGxq5yr4guIpAqZoerpIRjBzlrIfHy-UT5svzZGv41Kvf9G7rq6luHRDeHw3DoP1fnTYLE23JUYFVmhNO_H-jPvnHY4XPhlcXK441GStDj7xkSqr7zMTFc5a8V960r1h83qzrmN\"\n" +
                                 "}";
                         break;
                     default:
@@ -183,6 +175,8 @@ public class NavigationActivity extends AppCompatActivity implements OnNavigatio
     @Override
     protected void onDestroy() {
         navigationView.onDestroy();
+        leftTheStore = false;
+        arrivedToCostum = false;
         super.onDestroy();
     }
 

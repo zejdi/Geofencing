@@ -2,21 +2,13 @@ package com.testing.sim;
 
 import android.app.Notification;
 import android.app.NotificationManager;
-import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.drawable.Icon;
-import android.media.AudioAttributes;
 import android.os.Build;
-import android.provider.Settings;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.iid.FirebaseInstanceId;
-import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
@@ -26,7 +18,7 @@ public class MyFirebaseMessageService extends FirebaseMessagingService {
     private static String token;
     private NotificationManager notificationManager;
     private Notification notification;
-    public String fcmToken;
+
 
 
     @Override
@@ -34,15 +26,6 @@ public class MyFirebaseMessageService extends FirebaseMessagingService {
         super.onCreate();
 
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-
-        FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
-            @Override
-            public void onComplete(@NonNull Task<InstanceIdResult> task) {
-                Log.d(TAG, task.getResult().getToken());
-                fcmToken = task.getResult().getToken();
-            }
-        });
-
 
     }
 
@@ -54,14 +37,11 @@ public class MyFirebaseMessageService extends FirebaseMessagingService {
 
         if (remoteMessage.getData().size() > 0) {
             Log.d(TAG, "Message data payload: " + remoteMessage.getData());
-            token = remoteMessage.getData().remove("recipient");
-            Log.d(TAG, token);
-            Log.d(TAG,fcmToken);
         }
 
         if (remoteMessage.getNotification() != null) {
-                if(fcmToken.equals(token))
-                  showNotification(remoteMessage.getNotification().getTitle(),remoteMessage.getNotification().getBody());
+            Log.d(TAG, remoteMessage.toString());
+            showNotification(remoteMessage.getNotification().getTitle(),remoteMessage.getNotification().getBody());
         }
 
 
@@ -94,7 +74,6 @@ public class MyFirebaseMessageService extends FirebaseMessagingService {
 
     @Override
     public void onNewToken(@NonNull String s) {
-        super.onNewToken(s);
         Log.d(TAG,s);
     }
 }
